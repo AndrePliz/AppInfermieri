@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "708723395762",
+    "project_id": "pharmacareapp-f1c44",
+    "storage_bucket": "pharmacareapp-f1c44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708723395762:android:03e863f0eac9d53eb50dab",
+        "android_client_info": {
+          "package_name": "com.infermieri.pharmacare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDU8INVcigxTKok9UBR5Urc7G41zzRV9_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

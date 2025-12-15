@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    /* Configurazione Base */
+    "target": "es2016",                                  /* Versione JavaScript di output */
+    "module": "commonjs",                                /* Node.js usa CommonJS di default */
+    "moduleResolution": "node",                          /* Risoluzione moduli standard */
+    "outDir": "./dist",                                  /* Dove finiscono i file compilati */
+    "rootDir": "./src",                                  /* Dove stanno i file sorgente */
+    
+    /* Interoperabilità */
+    "esModuleInterop": true,                             /* Fondamentale per far funzionare 'import express from express' */
+    "forceConsistentCasingInFileNames": true,            
+    
+    /* Type Checking */
+    "strict": true,                                      /* Controlli rigorosi (aiuta a evitare bug) */
+    "skipLibCheck": true,                                /* Salta controllo tipi nelle librerie esterne (velocizza build) */
+    
+    /* Disabilitiamo le regole che ti hanno dato errore */
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
