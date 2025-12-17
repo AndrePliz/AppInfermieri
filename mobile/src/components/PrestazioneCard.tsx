@@ -12,11 +12,9 @@ type Props = {
   onAccept?: (id: number) => void;
   onRefuseRequest?: (id: number) => void;
   onComplete?: (id: number) => void;
-  // MODIFICA 1: Aggiunta la prop style opzionale
   style?: StyleProp<ViewStyle>; 
 };
 
-// MODIFICA 2: Aggiunto 'style' nel destructuring delle props
 export default function PrestazioneCard({ request, isMyShift, onLock, onAccept, onRefuseRequest, onComplete, style }: Props) {
   const [timeLeft, setTimeLeft] = useState<string>('--:--');
   
@@ -73,18 +71,27 @@ export default function PrestazioneCard({ request, isMyShift, onLock, onAccept, 
       styles.card,
       isLocked && styles.borderLocked,
       isAssigned && styles.borderAssigned,
-      // MODIFICA 3: Qui viene applicato lo stile esterno (il bordo blu dell'highlight)
       style 
     ]}>
       
-      {/* 1. TOP HEADER */}
-      <View style={styles.topHeader}>
-        <View style={styles.idBadge}>
-          <Text style={styles.idText}>#{request.service_request_id}</Text>
+      {/* 1. TOP HEADER con Timer incorporato */}
+      <View style={styles.topHeaderRow}>
+        <View style={styles.headerLeft}>
+            <View style={styles.idBadge}>
+            <Text style={styles.idText}>#{request.service_request_id}</Text>
+            </View>
+            <Text style={styles.serviceTitle}>
+            {request.Service?.service_description || 'SERVIZIO GENERICO'}
+            </Text>
         </View>
-        <Text style={styles.serviceTitle}>
-          {request.Service?.service_description || 'SERVIZIO GENERICO'}
-        </Text>
+
+        {/* TIMER BADGE (Solo se bloccato) - Stile ispirato allo screenshot */}
+        {isLocked && (
+            <View style={styles.timerBadge}>
+                <Icon source="clock-outline" size={14} color="#E65100" />
+                <Text style={styles.timerText}>{timeLeft}</Text>
+            </View>
+        )}
       </View>
 
       {/* 2. MAIN ROW */}
@@ -138,15 +145,7 @@ export default function PrestazioneCard({ request, isMyShift, onLock, onAccept, 
         </View>
       )}
 
-      {/* 4. TIMER SECTION (IN LINEA) */}
-      {isLocked && (
-        <View style={styles.timerContainer}>
-          <Text style={styles.timerLabel}>Questa richiesta è riservata a te per</Text>
-          <Text style={styles.timerValue}>{timeLeft}</Text>
-        </View>
-      )}
-
-      {/* 5. FOOTER */}
+      {/* 4. FOOTER */}
       <View style={styles.footer}>
         {isFree && (
           <Button 
@@ -212,25 +211,51 @@ const styles = StyleSheet.create({
   },
   borderAssigned: { borderColor: AppTheme.colors.primary, borderWidth: 1.5 },
 
-  // Top Header
-  topHeader: { marginBottom: 16, alignItems: 'flex-start' },
+  // Top Header Ridisegnato
+  topHeaderRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    marginBottom: 16 
+  },
+  headerLeft: { flex: 1, marginRight: 8 },
+  
   idBadge: { backgroundColor: '#F0F4F8', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginBottom: 6, alignSelf: 'flex-start' },
   idText: { fontFamily: 'Articulat-Medium', fontSize: 12, color: AppTheme.custom.textSecondary },
-  serviceTitle: { fontFamily: 'Articulat-Bold', fontSize: 18, color: AppTheme.custom.textMain, lineHeight: 22 },
+  serviceTitle: { fontFamily: 'Articulat-Bold', fontSize: 22, color: AppTheme.custom.textMain, lineHeight: 22 },
+
+  // NUOVO STILE TIMER (Ispirato allo screenshot)
+  timerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0', // Sfondo arancione molto chiaro
+    borderRadius: 20,           // Molto arrotondato (pillola)
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',     // Bordo arancione sottile
+    gap: 6
+  },
+  timerText: {
+    fontFamily: 'Articulat-Bold',
+    color: '#E65100',           // Arancione scuro per il testo
+    fontSize: 14,
+    fontVariant: ['tabular-nums'], // Evita che i numeri saltino
+  },
 
   // Main Row
   mainRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  dateBadge: { width: 60, height: 70, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  dateBadge: { width: 60, height: 70, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   dayText: { fontFamily: 'Articulat-Bold', fontSize: 26, color: AppTheme.custom.textMain, lineHeight: 28 },
   monthText: { fontFamily: 'Articulat-Bold', fontSize: 11, color: AppTheme.custom.textLight, textTransform: 'uppercase' },
 
   infoCol: { flex: 1, justifyContent: 'center' },
-  timePriceRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  timePriceRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   timeText: { fontFamily: 'Articulat-Bold', fontSize: 20, color: AppTheme.colors.primary, marginRight: 10 },
   priceBadge: { backgroundColor: AppTheme.custom.bgPrice, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   priceText: { fontFamily: 'Articulat-Bold', fontSize: 18, color: AppTheme.custom.textMain },
 
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   locationText: { fontFamily: 'Articulat-Medium', fontSize: 14, color: AppTheme.custom.textSecondary, flex: 1 },
 
   // Patient Box
@@ -250,27 +275,6 @@ const styles = StyleSheet.create({
   patientAddress: { fontFamily: 'Articulat-Regular', fontSize: 14, color: AppTheme.custom.textDark, lineHeight: 20 },
   actionIcons: { flexDirection: 'row', gap: 8 },
   circleBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: AppTheme.colors.primary, justifyContent: 'center', alignItems: 'center' },
-
-  // Timer Section
-  timerContainer: { 
-    marginTop: 20, 
-    marginBottom: 8,
-    flexDirection: 'row', 
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4
-  },
-  timerLabel: {
-    fontFamily: 'Articulat-Medium',
-    fontSize: 13,
-    color: AppTheme.custom.textSecondary,
-  },
-  timerValue: { 
-    fontFamily: 'Articulat-Bold', 
-    fontSize: 16, 
-    color: AppTheme.custom.textMain, 
-    letterSpacing: 1
-  },
 
   footer: { marginTop: 16 },
   btnLabel: { fontFamily: 'Articulat-Bold', fontSize: 15, paddingVertical: 2 },

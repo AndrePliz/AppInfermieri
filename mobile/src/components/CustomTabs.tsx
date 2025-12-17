@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   activeLabel: {
-    color: AppTheme.custom.textHero,
+    color : AppTheme.colors.primary,
   },
   inactiveLabel: {
     color: AppTheme.custom.textSecondary,

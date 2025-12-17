@@ -16,8 +16,8 @@ const COLORS = {
   bgPrice: '#F0F2F5',
   bgInput: '#FFFFFF',
   
-  textMain: '#102A43',   
-  textDark: '#333333',   
+  textMain: '#222222',   
+  textDark: '#444444',   
   textLight: '#627D98',  
   textSecondary: '#8F9BB3', 
   label: '#999999',      

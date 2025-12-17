@@ -53,12 +53,10 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
 // --- LOGICA EVIDENZIAZIONE NOTIFICA ---
 useEffect(() => {
 if (highlightId) {
-    // Se non siamo già sulla tab 'new', ci andiamo
     if (viewMode !== 'new') {
     setViewMode('new');
     fetchShifts();
     } else {
-    // Se siamo già lì, ricarichiamo solo per sicurezza (o non facciamo nulla se preferisci)
     fetchShifts(); 
     }
 }
@@ -206,10 +204,8 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', marginTop: 80 },
   emptyText: { fontFamily: 'Articulat-Medium', color: '#999', fontSize: 16, marginBottom: 12 },
 
-  // --- NUOVO STILE SEMPLIFICATO ---
   cardHighlight: {
-    borderColor: AppTheme.colors.primary, // Usa il colore principale del brand
-    borderWidth: 2, // Spessore del bordo
-    // Non serve background o shadow extra, usiamo quelli della card standard
+    borderColor: AppTheme.colors.primary,
+    borderWidth: 1,
   },
 });
