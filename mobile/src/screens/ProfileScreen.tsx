@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { Text, Switch, Icon, Divider, Surface } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { AppTheme } from '../theme';
@@ -158,7 +158,21 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
 
           <Divider style={styles.divider} />
 
-          {/* 3. LOGOUT (Integrato nel menu) */}
+          {/* 3. Privacy Policy */}
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('https://www.iubenda.com/privacy-policy/123456')}>
+            <View style={[styles.iconBox, { backgroundColor: '#F5F5F5' }]}>
+              <Icon source="shield-account-outline" size={24} color="#616161" />
+            </View>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowTitle}>Privacy Policy</Text>
+              <Text style={styles.rowSubtitle}>Termini e condizioni</Text>
+            </View>
+            <Icon source="chevron-right" size={24} color={AppTheme.custom.textSecondary} />
+          </TouchableOpacity>
+
+          <Divider style={styles.divider} />
+
+          {/* 4. LOGOUT (Integrato nel menu) */}
           <TouchableOpacity style={styles.row} onPress={() => setLogoutAlertVisible(true)}>
             <View style={[styles.iconBox, { backgroundColor: '#FFEBEE' }]}>
               <Icon source="logout" size={24} color={AppTheme.custom.error} />
