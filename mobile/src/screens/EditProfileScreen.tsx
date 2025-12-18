@@ -63,6 +63,48 @@ export default function EditProfileScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Elimina Account',
+      'Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno cancellati.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { 
+          text: 'Elimina', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const token = await SecureStore.getItemAsync('token');
+              const API_URL = 'https://tuo-backend-url.com'; 
+
+              const response = await fetch(`${API_URL}/profile`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+
+              if (response.ok) {
+                 await SecureStore.deleteItemAsync('token');
+                 await SecureStore.deleteItemAsync('user_info');
+                 // Forziamo il logout navigando alla root o chiamando una prop di logout se passata
+                 // Qui assumiamo che svuotare il token faccia scattare il logout nel root navigator
+                 Alert.alert('Account Eliminato', 'Il tuo account è stato cancellato con successo.', [
+                     { text: 'OK', onPress: () => navigation.popToTop() } 
+                 ]);
+              } else {
+                Alert.alert('Errore', 'Impossibile eliminare l\'account. Riprova più tardi.');
+              }
+            } catch (error) {
+              Alert.alert('Errore', 'Errore di connessione.');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -146,6 +188,22 @@ export default function EditProfileScreen({ navigation, route }: Props) {
             Salva Modifiche
         </Button>
 
+        <Divider style={{ marginVertical: 30 }} />
+
+        <Button 
+            mode="outlined" 
+            onPress={handleDeleteAccount} 
+            loading={loading}
+            style={{ borderColor: AppTheme.custom.error }}
+            textColor={AppTheme.custom.error}
+            contentStyle={{ height: 50 }}
+        >
+            Elimina Account
+        </Button>
+        <HelperText type="error" style={{ textAlign: 'center', marginBottom: 20 }}>
+            Attenzione: Questa azione è irreversibile.
+        </HelperText>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -153,7 +211,7 @@ export default function EditProfileScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppTheme.colors.background },
-  scroll: { padding: 20 },
+  scroll: { padding: 20, paddingBottom: 50 },
   header: { marginBottom: 20, marginTop: 10 },
   title: { fontFamily: 'Articulat-Bold', fontSize: 24, color: AppTheme.custom.textMain },
   subtitle: { fontFamily: 'Articulat-Regular', fontSize: 16, color: AppTheme.custom.textSecondary, marginTop: 4 },
