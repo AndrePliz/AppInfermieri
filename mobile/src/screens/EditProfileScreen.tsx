@@ -1,208 +1,162 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, HelperText, Surface } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import { AppTheme } from '../theme';
-import * as SecureStore from 'expo-secure-store';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../App'; // Assumiamo che esista, altrimenti adatteremo
+import api from '../services/api';
 
+// Definiamo i tipi per le props che arrivano dallo Stack Navigator
 type Props = {
-  navigation: StackNavigationProp<RootStackParamList, 'EditProfile'>;
-  route: any;
+  navigation: any;
+  route: any; // Qui dentro ci sarà route.params.user
 };
 
 export default function EditProfileScreen({ navigation, route }: Props) {
-  // Riceviamo i dati attuali come parametri per pre-compilare i campi
+  // Prendiamo l'utente passato come parametro da ProfileScreen
   const { user } = route.params || {};
 
+  // Inizializziamo gli stati con i dati esistenti
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [address, setAddress] = useState(user?.address || '');
   const [city, setCity] = useState(user?.city || '');
   const [distance, setDistance] = useState(user?.distance ? String(user.distance) : '30');
+  
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('token');
-      // Sostituisci con il tuo URL backend reale
-      const API_URL = 'https://tuo-backend-url.com'; 
-
-      const response = await fetch(`${API_URL}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name,
-          phone,
-          address,
-          city,
-          distance: parseInt(distance)
-        })
+      // Chiamata PUT al backend
+      await api.put('/profile', {
+        name,
+        phone,
+        address,
+        city,
+        distance: parseInt(distance), // Convertiamo stringa in numero
       });
 
-      if (response.ok) {
-        Alert.alert('Successo', 'Profilo aggiornato correttamente');
-        // Aggiorniamo anche la cache locale se necessario
-        const updatedUser = { ...user, name, phone, address, city, distance: parseInt(distance) };
-        await SecureStore.setItemAsync('user_info', JSON.stringify(updatedUser));
-        
-        navigation.goBack();
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Errore', errorData.message || 'Impossibile aggiornare il profilo');
-      }
+      Alert.alert('Successo', 'Profilo aggiornato correttamente');
+      navigation.goBack(); // Torna indietro (ProfileScreen si aggiornerà grazie al listener)
     } catch (error) {
       console.error(error);
-      Alert.alert('Errore', 'Errore di connessione');
+      Alert.alert('Errore', 'Impossibile aggiornare il profilo');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     Alert.alert(
-      'Elimina Account',
-      'Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno cancellati.',
-      [
-        { text: 'Annulla', style: 'cancel' },
-        { 
-          text: 'Elimina', 
-          style: 'destructive', 
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const token = await SecureStore.getItemAsync('token');
-              const API_URL = 'https://tuo-backend-url.com'; 
-
-              const response = await fetch(`${API_URL}/profile`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-
-              if (response.ok) {
-                 await SecureStore.deleteItemAsync('token');
-                 await SecureStore.deleteItemAsync('user_info');
-                 // Forziamo il logout navigando alla root o chiamando una prop di logout se passata
-                 // Qui assumiamo che svuotare il token faccia scattare il logout nel root navigator
-                 Alert.alert('Account Eliminato', 'Il tuo account è stato cancellato con successo.', [
-                     { text: 'OK', onPress: () => navigation.popToTop() } 
-                 ]);
-              } else {
-                Alert.alert('Errore', 'Impossibile eliminare l\'account. Riprova più tardi.');
-              }
-            } catch (error) {
-              Alert.alert('Errore', 'Errore di connessione.');
-            } finally {
-              setLoading(false);
+        "Elimina Account", 
+        "Sei sicuro? Questa azione non può essere annullata.",
+        [
+            { text: "Annulla", style: "cancel" },
+            { 
+                text: "Elimina per sempre", 
+                style: "destructive", 
+                onPress: async () => {
+                    try {
+                        await api.delete('/profile');
+                        // Qui l'app dovrebbe gestire il logout automatico. 
+                        // Per ora chiudiamo l'app o torniamo al login.
+                        Alert.alert("Account Eliminato", "L'applicazione verrà chiusa.");
+                    } catch (e) {
+                        Alert.alert("Errore", "Impossibile eliminare l'account.");
+                    }
+                }
             }
-          }
-        }
-      ]
+        ]
     );
   };
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
+        
         <View style={styles.header}>
             <Text style={styles.title}>Modifica Profilo</Text>
-            <Text style={styles.subtitle}>Aggiorna le tue informazioni personali</Text>
+            <Text style={styles.subtitle}>Aggiorna i tuoi dati e il raggio d'azione.</Text>
         </View>
 
-        <Surface style={styles.card} elevation={0}>
-            
-            {/* NOME COMPLETO */}
-            <TextInput
-                label="Nome e Cognome"
-                value={name}
-                onChangeText={setName}
-                mode="outlined"
+        <View style={styles.form}>
+            <TextInput 
+                label="Nome Completo" 
+                value={name} 
+                onChangeText={setName} 
+                mode="outlined" 
                 style={styles.input}
-                outlineColor="#E0E0E0"
+                outlineColor="#E0E6ED"
                 activeOutlineColor={AppTheme.colors.primary}
             />
-
-            {/* TELEFONO */}
-            <TextInput
-                label="Telefono"
-                value={phone}
-                onChangeText={setPhone}
-                mode="outlined"
+            
+            <TextInput 
+                label="Telefono" 
+                value={phone} 
+                onChangeText={setPhone} 
+                mode="outlined" 
                 keyboardType="phone-pad"
                 style={styles.input}
-                outlineColor="#E0E0E0"
+                outlineColor="#E0E6ED"
                 activeOutlineColor={AppTheme.colors.primary}
             />
 
-            {/* INDIRIZZO */}
-            <TextInput
-                label="Indirizzo"
-                value={address}
-                onChangeText={setAddress}
-                mode="outlined"
+            <View style={styles.row}>
+                <TextInput 
+                    label="Città" 
+                    value={city} 
+                    onChangeText={setCity} 
+                    mode="outlined" 
+                    style={[styles.input, { flex: 1, marginRight: 10 }]}
+                    outlineColor="#E0E6ED"
+                />
+                <TextInput 
+                    label="Raggio (KM)" 
+                    value={distance} 
+                    onChangeText={setDistance} 
+                    mode="outlined" 
+                    keyboardType="numeric"
+                    style={[styles.input, { width: 100 }]}
+                    outlineColor="#E0E6ED"
+                />
+            </View>
+
+            <TextInput 
+                label="Indirizzo Base" 
+                value={address} 
+                onChangeText={setAddress} 
+                mode="outlined" 
                 style={styles.input}
-                outlineColor="#E0E0E0"
-                activeOutlineColor={AppTheme.colors.primary}
+                outlineColor="#E0E6ED"
             />
 
-            {/* CITTÀ */}
-            <TextInput
-                label="Città"
-                value={city}
-                onChangeText={setCity}
-                mode="outlined"
-                style={styles.input}
-                outlineColor="#E0E0E0"
-                activeOutlineColor={AppTheme.colors.primary}
-            />
+            <Button 
+                mode="contained" 
+                onPress={handleSave} 
+                loading={loading}
+                disabled={loading}
+                style={styles.saveBtn}
+                contentStyle={{ height: 50 }}
+                labelStyle={{ fontFamily: 'Articulat-Bold' }}
+            >
+                SALVA MODIFICHE
+            </Button>
 
-            {/* RAGGIO KM */}
-            <TextInput
-                label="Raggio d'azione (km)"
-                value={distance}
-                onChangeText={setDistance}
-                mode="outlined"
-                keyboardType="numeric"
-                style={styles.input}
-                outlineColor="#E0E0E0"
-                activeOutlineColor={AppTheme.colors.primary}
-            />
-            <HelperText type="info">Distanza massima per ricevere notifiche.</HelperText>
-
-        </Surface>
-
-        <Button 
-            mode="contained" 
-            onPress={handleSave} 
-            loading={loading}
-            style={styles.button}
-            contentStyle={{ height: 50 }}
-        >
-            Salva Modifiche
-        </Button>
-
-        <Divider style={{ marginVertical: 30 }} />
-
-        <Button 
-            mode="outlined" 
-            onPress={handleDeleteAccount} 
-            loading={loading}
-            style={{ borderColor: AppTheme.custom.error }}
-            textColor={AppTheme.custom.error}
-            contentStyle={{ height: 50 }}
-        >
-            Elimina Account
-        </Button>
-        <HelperText type="error" style={{ textAlign: 'center', marginBottom: 20 }}>
-            Attenzione: Questa azione è irreversibile.
-        </HelperText>
+            <View style={{ marginTop: 40 }}>
+                <Button 
+                    mode="text" 
+                    textColor={AppTheme.custom.error}
+                    onPress={handleDeleteAccount}
+                >
+                    Elimina il mio account
+                </Button>
+                <HelperText type="error" visible={true} style={{ textAlign: 'center' }}>
+                   Azione irreversibile
+                </HelperText>
+            </View>
+        </View>
 
       </ScrollView>
     </KeyboardAvoidingView>
@@ -210,19 +164,13 @@ export default function EditProfileScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppTheme.colors.background },
-  scroll: { padding: 20, paddingBottom: 50 },
-  header: { marginBottom: 20, marginTop: 10 },
+  container: { flex: 1, backgroundColor: 'white' },
+  scroll: { padding: 24, paddingTop: 100 }, // Padding top per non finire sotto l'header trasparente
+  header: { marginBottom: 32 },
   title: { fontFamily: 'Articulat-Bold', fontSize: 24, color: AppTheme.custom.textMain },
   subtitle: { fontFamily: 'Articulat-Regular', fontSize: 16, color: AppTheme.custom.textSecondary, marginTop: 4 },
-  
-  card: { 
-    ...AppTheme.custom.cardStyle, 
-    padding: 20,
-    marginBottom: 20
-  },
-  
-  input: { marginBottom: 12, backgroundColor: 'white', fontSize: 16 },
-  
-  button: { borderRadius: 12, backgroundColor: AppTheme.colors.primary }
+  form: { gap: 16 },
+  input: { backgroundColor: '#fff', fontSize: 16, fontFamily: 'Articulat-Medium' },
+  row: { flexDirection: 'row' },
+  saveBtn: { borderRadius: 12, backgroundColor: AppTheme.colors.primary, marginTop: 8 }
 });
