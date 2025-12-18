@@ -1,4 +1,3 @@
-// FILE: mobile/src/screens/OnboardingScreen.tsx
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, FlatList, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

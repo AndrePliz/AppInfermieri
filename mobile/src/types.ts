@@ -29,7 +29,7 @@ export interface ShiftsResponse {
 }
 
 export type RootStackParamList = {
-  Onboarding: undefined; // Schermata tutorial
-  Login: undefined;      // Schermata login
-  Main: undefined;       // Schermata principale (che contiene i tab Home/Profilo)
+  Onboarding: undefined; // Se creerai questa schermata
+  Login: undefined;
+  Main: undefined;       // Contiene i tab Home/Profilo
 };

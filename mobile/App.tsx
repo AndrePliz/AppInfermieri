@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler'; 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Alert } from 'react-native';
 import { Provider as PaperProvider, BottomNavigation } from 'react-native-paper';
@@ -5,31 +6,25 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-import * as Clipboard from 'expo-clipboard';
-import * as Notifications from 'expo-notifications';
+import 'react-native-gesture-handler'; // <--- IMPORTANTE PER LO STACK NAVIGATOR
 
-// --- IMPORTIAMO LA NAVIGAZIONE ---
+// --- NAVIGAZIONE ---
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { RootStackParamList } from './src/types'; // Il file modificato al passo 2
+import { RootStackParamList } from './src/types'; 
 
-// --- IMPORT SCHERMATE ---
+// --- SCHERMATE ---
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-// import OnboardingScreen from './src/screens/OnboardingScreen'; // SCOMMENTA QUANDO CREI IL FILE
+// import OnboardingScreen from './src/screens/OnboardingScreen'; // Scommenta se il file esiste
 
 import { AppTheme } from './src/theme';
-import api from './src/services/api';
-import { registerForPushNotificationsAsync } from './src/services/pushNotifications';
 
-// Creiamo lo "Stack" (il gestore delle carte)
 const Stack = createStackNavigator<RootStackParamList>();
 
-// --- COMPONENTE INTERNO: GESTISCE I TAB (Home / Profilo) ---
-// Questo sostituisce la logica che avevi direttamente in App
-function MainTabs({ navigation, route }: any) {
+// --- COMPONENTE TABS (Home + Profilo) ---
+function MainTabs({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'home', title: 'Prestazioni', focusedIcon: 'clipboard-text', unfocusedIcon: 'clipboard-text-outline' },
@@ -39,25 +34,17 @@ function MainTabs({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
   const [highlightRequestId, setHighlightRequestId] = useState<number | null>(null);
 
-  // Gestione Logout passata al Profilo
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync('user_token');
     await SecureStore.deleteItemAsync('user_info');
-    // Resetta la navigazione e torna al Login
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Login' }],
-    });
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   const renderScene = useCallback(({ route }: { route: { key: string } }) => {
     switch (route.key) {
-      case 'home':
-        return <HomeScreen highlightId={highlightRequestId} />;
-      case 'profile':
-        return <ProfileScreen onLogout={handleLogout} />;
-      default:
-        return null;
+      case 'home': return <HomeScreen highlightId={highlightRequestId} />;
+      case 'profile': return <ProfileScreen onLogout={handleLogout} />;
+      default: return null;
     }
   }, [highlightRequestId]);
 
@@ -69,70 +56,50 @@ function MainTabs({ navigation, route }: any) {
         renderScene={renderScene}
         barStyle={{ 
           backgroundColor: 'white', 
-          borderTopWidth: 1, 
           borderTopColor: '#EEF2F6',
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+          borderTopWidth: 1,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 20),
-          elevation: 0,
         }}
         activeColor={AppTheme.colors.primary}
-        inactiveColor={AppTheme.custom.textSecondary}
         theme={AppTheme}
       />
     </View>
   );
 }
 
-// --- APP PRINCIPALE ---
+// --- ROOT APP ---
 export default function App() {
   const [fontsLoaded] = useFonts({
-    'Articulat-Thin': require('./assets/fonts/Articulate-Thin.otf'),
-    'Articulat-Light': require('./assets/fonts/Articulate-Light.otf'),
     'Articulat-Regular': require('./assets/fonts/Articulate-Regular.otf'),
-    'Articulat-Medium': require('./assets/fonts/Articulate-Medium.otf'),
     'Articulat-Bold': require('./assets/fonts/Articulate-Bold.otf'),
-    'Articulat-Heavy': require('./assets/fonts/Articulate-Heavy.otf'),
+    // ... altri font se necessari ...
   });
 
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
-  // Controlliamo il login all'avvio
   useEffect(() => {
     const checkLogin = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('user_token');
-        // Se c'è il token va a Main, altrimenti Login
-        // (In futuro qui controllerai se l'utente ha già visto l'onboarding)
-        setInitialRoute(token ? 'Main' : 'Login');
-      } catch (e) {
-        setInitialRoute('Login');
-      }
+      const token = await SecureStore.getItemAsync('user_token');
+      setInitialRoute(token ? 'Main' : 'Login');
     };
     checkLogin();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded && initialRoute) {
-      // await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, initialRoute]);
+    // Gestione splash screen manuale se serve
+  }, [fontsLoaded]);
 
   if (!fontsLoaded || !initialRoute) return null;
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <PaperProvider theme={AppTheme}>
-        {/* QUI RISOLVIAMO L'ERRORE NavigationContainer */}
         <NavigationContainer>
           <StatusBar style="dark" />
-          <Stack.Navigator 
-            initialRouteName={initialRoute} 
-            screenOptions={{ headerShown: false }} // Nascondiamo l'header default brutto
-          >
-            {/* Definiamo le schermate disponibili */}
-            {/* <Stack.Screen name="Onboarding" component={OnboardingScreen} /> */}
+          <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
+            {/* <Stack.Screen name="Onboarding" component={OnboardingScreen} /> */}
           </Stack.Navigator>
         </NavigationContainer>
       </PaperProvider>
