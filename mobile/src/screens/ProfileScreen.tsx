@@ -6,20 +6,52 @@ import { AppTheme } from '../theme';
 import CustomAlert from '../components/CustomAlert';
 
 type UserInfo = { name: string; username: string; id: number; email_notifiche: string; };
-type Props = { onLogout: () => void; };
+type Props = { 
+  onLogout: () => void; 
+  navigation: any; // Aggiungiamo navigation
+};
 
-export default function ProfileScreen({ onLogout }: Props) {
+export default function ProfileScreen({ onLogout, navigation }: Props) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [notificheEnabled, setNotificheEnabled] = useState(true);
   const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
+  // Recupero fresco dei dati (GET /profile) invece di solo SecureStore
+  const fetchProfile = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const API_URL = 'https://tuo-backend-url.com'; // Sostituisci
+
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        // Aggiorna anche la cache
+        await SecureStore.setItemAsync('user_info', JSON.stringify(userData));
+      } else {
+        // Fallback: carica dalla cache
+        const json = await SecureStore.getItemAsync('user_info');
+        if (json) setUser(JSON.parse(json));
+      }
+    } catch (e) {
+      // Fallback in caso di offline
       const json = await SecureStore.getItemAsync('user_info');
       if (json) setUser(JSON.parse(json));
-    };
-    load();
-  }, []);
+    }
+  };
+
+  useEffect(() => {
+    // Carichiamo all'avvio e ogni volta che la schermata riceve focus (dopo modifica)
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchProfile();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const confirmLogout = () => {
     setLogoutAlertVisible(false);
@@ -110,13 +142,16 @@ export default function ProfileScreen({ onLogout }: Props) {
           <Divider style={styles.divider} />
 
           {/* 2. Il mio profilo */}
-          <TouchableOpacity style={styles.row}>
+          <TouchableOpacity 
+            style={styles.row}
+            onPress={() => navigation.navigate('EditProfile', { user })}
+          >
             <View style={[styles.iconBox, { backgroundColor: '#E8EAF6' }]}>
               <Icon source="account-circle-outline" size={24} color="#3F51B5" />
             </View>
             <View style={styles.rowContent}>
               <Text style={styles.rowTitle}>Il mio profilo</Text>
-              <Text style={styles.rowSubtitle}>Dati anagrafici</Text>
+              <Text style={styles.rowSubtitle}>Modifica dati anagrafici</Text>
             </View>
             <Icon source="chevron-right" size={24} color={AppTheme.custom.textSecondary} />
           </TouchableOpacity>
