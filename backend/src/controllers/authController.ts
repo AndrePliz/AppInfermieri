@@ -82,6 +82,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 // --- NUOVA FUNZIONE CORRETTA: UPDATE DEVICE TOKEN ---
 export const updateDeviceToken = async (req: any, res: Response) => {
   try {
+    console.log("=================================");
+    console.log("📨 RICHIESTA ARRIVATA AL CONTROLLER");
+    console.log("🔑 Headers:", req.headers['content-type']);
+    console.log("📦 Body ricevuto:", JSON.stringify(req.body, null, 2));
+    console.log("📱 Cerco la chiave 'device'. Valore:", req.body?.device);
+    console.log("=================================");
     const { device } = req.body;
     
     // Il middleware 'authenticateToken' decodifica il token e mette i dati in req.user

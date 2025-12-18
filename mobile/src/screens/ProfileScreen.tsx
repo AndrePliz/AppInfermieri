@@ -1,57 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Switch, Icon, Divider, Surface } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { AppTheme } from '../theme';
 import CustomAlert from '../components/CustomAlert';
 
 type UserInfo = { name: string; username: string; id: number; email_notifiche: string; };
-type Props = { 
-  onLogout: () => void; 
-  navigation: any; // Aggiungiamo navigation
-};
+type Props = { onLogout: () => void; };
 
-export default function ProfileScreen({ onLogout, navigation }: Props) {
+export default function ProfileScreen({ onLogout }: Props) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [notificheEnabled, setNotificheEnabled] = useState(true);
   const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
 
-  // Recupero fresco dei dati (GET /profile) invece di solo SecureStore
-  const fetchProfile = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      const API_URL = 'https://tuo-backend-url.com'; // Sostituisci
-
-      if (!token) return;
-
-      const response = await fetch(`${API_URL}/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        // Aggiorna anche la cache
-        await SecureStore.setItemAsync('user_info', JSON.stringify(userData));
-      } else {
-        // Fallback: carica dalla cache
-        const json = await SecureStore.getItemAsync('user_info');
-        if (json) setUser(JSON.parse(json));
-      }
-    } catch (e) {
-      // Fallback in caso di offline
+  useEffect(() => {
+    const load = async () => {
       const json = await SecureStore.getItemAsync('user_info');
       if (json) setUser(JSON.parse(json));
-    }
-  };
-
-  useEffect(() => {
-    // Carichiamo all'avvio e ogni volta che la schermata riceve focus (dopo modifica)
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchProfile();
-    });
-    return unsubscribe;
-  }, [navigation]);
+    };
+    load();
+  }, []);
 
   const confirmLogout = () => {
     setLogoutAlertVisible(false);
@@ -77,11 +45,11 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-        
+
         {/* GRUPPO 1: IMPOSTAZIONI LAVORATIVE */}
         <Text style={styles.sectionHeader}>IMPOSTAZIONI LAVORATIVE</Text>
         <Surface style={styles.card} elevation={0}>
-          
+
           {/* 1. Raggio */}
           <TouchableOpacity style={styles.row}>
             <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
@@ -93,9 +61,9 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
             </View>
             <Icon source="chevron-right" size={24} color={AppTheme.custom.textSecondary} />
           </TouchableOpacity>
-          
+
           <Divider style={styles.divider} />
-          
+
           {/* 2. Prestazioni Offerte */}
           <TouchableOpacity style={styles.row}>
             <View style={[styles.iconBox, { backgroundColor: '#E0F2F1' }]}>
@@ -126,7 +94,7 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
         {/* GRUPPO 2: GENERALI */}
         <Text style={styles.sectionHeader}>GENERALI</Text>
         <Surface style={styles.card} elevation={0}>
-          
+
           {/* 1. Notifiche */}
           <View style={styles.row}>
             <View style={[styles.iconBox, { backgroundColor: '#F3E5F5' }]}>
@@ -141,11 +109,8 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
 
           <Divider style={styles.divider} />
 
-          {/* 2. Il mio profilo */}
-          <TouchableOpacity 
-            style={styles.row}
-            onPress={() => navigation.navigate('EditProfile', { user })}
-          >
+          {/* 2. Il mio profilo (FIXATO) */}
+          <TouchableOpacity style={styles.row}>
             <View style={[styles.iconBox, { backgroundColor: '#E8EAF6' }]}>
               <Icon source="account-circle-outline" size={24} color="#3F51B5" />
             </View>
@@ -158,21 +123,7 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
 
           <Divider style={styles.divider} />
 
-          {/* 3. Privacy Policy */}
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('https://www.iubenda.com/privacy-policy/123456')}>
-            <View style={[styles.iconBox, { backgroundColor: '#F5F5F5' }]}>
-              <Icon source="shield-account-outline" size={24} color="#616161" />
-            </View>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Privacy Policy</Text>
-              <Text style={styles.rowSubtitle}>Termini e condizioni</Text>
-            </View>
-            <Icon source="chevron-right" size={24} color={AppTheme.custom.textSecondary} />
-          </TouchableOpacity>
-
-          <Divider style={styles.divider} />
-
-          {/* 4. LOGOUT (Integrato nel menu) */}
+          {/* 3. LOGOUT (Integrato nel menu) */}
           <TouchableOpacity style={styles.row} onPress={() => setLogoutAlertVisible(true)}>
             <View style={[styles.iconBox, { backgroundColor: '#FFEBEE' }]}>
               <Icon source="logout" size={24} color={AppTheme.custom.error} />
@@ -184,10 +135,10 @@ export default function ProfileScreen({ onLogout, navigation }: Props) {
             <Icon source="chevron-right" size={24} color={AppTheme.custom.textSecondary} />
           </TouchableOpacity>
         </Surface>
-        
+
         <Text style={styles.version}>PharmaCare App v1.0.0</Text>
       </ScrollView>
-
+      
       <CustomAlert 
         visible={logoutAlertVisible}
         type="warning"
@@ -215,7 +166,7 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: 'Articulat-Bold', fontSize: 30, color: AppTheme.custom.textMain, textAlign: 'center', marginBottom: 4 },
   email: { fontFamily: 'Articulat-Medium', fontSize: 16, color: AppTheme.custom.textSecondary, textAlign: 'center' },
-  
+
   badgeContainer: { marginTop: 16 },
   idBadge: { 
     backgroundColor: '#F5F7FA', 
@@ -228,12 +179,12 @@ const styles = StyleSheet.create({
 
   scroll: { padding: 28 },
   sectionHeader: { fontFamily: 'Articulat-Bold', fontSize: 11, color: AppTheme.custom.label, marginBottom: 16, marginLeft: 4, letterSpacing: 1.5, marginTop: 8 },
-  
+
   card: { 
-    ...AppTheme.custom.cardStyle, // Stesso stile della Home
+    ...AppTheme.custom.cardStyle, 
     marginBottom: 32,
   },
-  
+
   row: { flexDirection: 'row', alignItems: 'center', padding: 20 },
   iconBox: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   rowContent: { flex: 1 },
@@ -241,4 +192,4 @@ const styles = StyleSheet.create({
   rowSubtitle: { fontFamily: 'Articulat-Regular', fontSize: 14, color: AppTheme.custom.textSecondary },
   divider: { height: 1, backgroundColor: '#F5F7FA', marginLeft: 84 },
   version: { textAlign: 'center', marginTop: 10, color: '#D0D5DD', fontSize: 12, fontFamily: 'Articulat-Medium' }
-});
+}); 
