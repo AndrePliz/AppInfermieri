@@ -1,7 +1,7 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../db';
 
-// 1. Aggiungiamo 'device' all'interfaccia
+// 1. Aggiungiamo i campi mancanti all'interfaccia
 export interface UserAttributes {
   id: number;
   username: string;
@@ -12,10 +12,16 @@ export interface UserAttributes {
   login_counter: number;
   account_blocked: number;
   status: number;
-  device?: string; // <--- AGGIUNTO QUI (Opzionale perché può essere null)
+  device?: string;
+  // --- NUOVI CAMPI AGGIUNTI ---
+  phone?: string;
+  address?: string;
+  city?: string;
+  distance?: number;
+  notes?: string;
 }
 
-// 2. Aggiungiamo 'device' alla classe
+// 2. Aggiungiamo i campi alla classe
 export class User extends Model<UserAttributes> implements UserAttributes {
   public id!: number;
   public username!: string;
@@ -26,7 +32,13 @@ export class User extends Model<UserAttributes> implements UserAttributes {
   public login_counter!: number;
   public account_blocked!: number;
   public status!: number;
-  public device!: string; // <--- AGGIUNTO QUI
+  public device!: string;
+  // --- NUOVI CAMPI AGGIUNTI ---
+  public phone!: string;
+  public address!: string;
+  public city!: string;
+  public distance!: number;
+  public notes!: string;
 }
 
 User.init(
@@ -52,12 +64,34 @@ User.init(
       type: DataTypes.STRING(512),
       allowNull: true, 
     },
-    // 3. Aggiungiamo la definizione della colonna 'device'
     device: {
       type: DataTypes.STRING(128),
       allowNull: true,
       defaultValue: null
     },
+    // --- NUOVE DEFINIZIONI COLONNE ---
+    phone: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    address: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    distance: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 25 // Default ragionevole se manca
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    // --------------------------------
     pharmacist: {
       type: DataTypes.INTEGER,
       defaultValue: 0,

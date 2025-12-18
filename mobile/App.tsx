@@ -4,7 +4,7 @@ import { Provider as PaperProvider, BottomNavigation } from 'react-native-paper'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
-import { useFonts } from 'expo-font'; // <--- COMMENTATO PER DEBUG
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Clipboard from 'expo-clipboard'; 
 
@@ -18,7 +18,7 @@ import { registerForPushNotificationsAsync } from './src/services/pushNotificati
 import * as Notifications from 'expo-notifications';
 
 // 1. DISATTIVIAMO LA GESTIONE MANUALE DELLO SPLASH SCREEN PER ORA
-// SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync();
 
 function MainContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

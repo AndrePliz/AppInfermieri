@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: '#FFFFFF',
-    ...AppTheme.custom.shadowFloating,
   },
   label: {
     fontFamily: 'Articulat-Bold',
