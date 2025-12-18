@@ -27,3 +27,9 @@ export interface ShiftsResponse {
   available: ServiceRequest[];
   myShifts: ServiceRequest[];
 }
+
+export type RootStackParamList = {
+  Onboarding: undefined; // Schermata tutorial
+  Login: undefined;      // Schermata login
+  Main: undefined;       // Schermata principale (che contiene i tab Home/Profilo)
+};
