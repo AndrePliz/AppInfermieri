@@ -1,253 +1,182 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, FlatList, Animated } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, StyleSheet, Dimensions, FlatList, Animated, Image } from 'react-native';
+import { Text, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Button } from 'react-native-paper';
 import { AppTheme } from '../theme';
-// Importa il tipo che abbiamo creato al Passo 2
 import { RootStackParamList } from '../types';
-type OnboardingNavigationProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
-
-export default function OnboardingScreen() {
-  const navigation = useNavigation<OnboardingNavigationProp>();
-
-  const handleFinish = async () => {
-    // Ora TypeScript sa che 'Login' esiste ed è valido
-    navigation.replace('Login'); 
-  };
-
-// Se il tuo StackParamList è definito altrove, importalo. 
-// Altrimenti questa definizione locale va bene per far funzionare il file.
-type RootStackParamList = {
-  Login: undefined;
-  Onboarding: undefined;
-};
-
-type Props = {
-  navigation: StackNavigationProp<RootStackParamList, 'Onboarding'>;
-  route: { params: { onFinish: () => void } };
-};
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
 const SLIDES = [
   {
     id: '1',
-    title: 'Precisione Chirurgica',
-    description: 'Gestisci i tuoi turni con un\'interfaccia pulita e senza distrazioni. Ogni informazione è al posto giusto.',
-    icon: 'medical-bag' as const,
+    title: 'Benvenuto in\nPharmaCare',
+    description: 'La piattaforma dedicata ai professionisti sanitari per gestire i turni con precisione chirurgica.',
+    icon: 'hospital-building', // Usa icone MaterialCommunityIcons se vuoi, qui uso testo per semplicità o immagini placeholder
   },
   {
     id: '2',
-    title: 'Notifiche Immediate',
-    description: 'Ricevi richieste di intervento in tempo reale. Accetta o rifiuta con un singolo tocco deciso.',
-    icon: 'bell-ring-outline' as const,
+    title: 'Gestione Turni\nSemplificata',
+    description: 'Ricevi notifiche in tempo reale per nuove richieste. Accetta o rifiuta con un tocco.',
+    icon: 'calendar-clock',
   },
   {
     id: '3',
-    title: 'Il Tuo Territorio',
-    description: 'Imposta il tuo raggio d\'azione e le disponibilità. Lavora dove e quando vuoi, senza sorprese.',
-    icon: 'map-marker-radius' as const,
+    title: 'Dettagli Paziente\nSempre Disponibili',
+    description: 'Visualizza cartella clinica, indirizzo e necessità specifiche prima di accettare l\'incarico.',
+    icon: 'account-details',
   },
 ];
 
-export default function OnboardingScreen({ navigation, route }: Props) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
-  
-  // FIX: Una sola dichiarazione di theme, forzando il tipo per leggere i tuoi colori custom
-  const theme = useTheme() as typeof AppTheme;
+type OnboardingNavProp = StackNavigationProp<RootStackParamList, 'Onboarding'>;
 
-  const handleFinish = async () => {
-    try {
-      await SecureStore.setItemAsync('has_seen_onboarding', 'true');
-      
-      if (route.params?.onFinish) {
-        route.params.onFinish();
-      } else {
-        navigation.replace('Login');
-      }
-    } catch (e) {
-      console.error('Errore salvataggio onboarding', e);
-      // In caso di errore, vai comunque al login
-      navigation.replace('Login');
-    }
-  };
+export default function OnboardingScreen() {
+  const navigation = useNavigation<OnboardingNavProp>();
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<FlatList>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
-      handleFinish();
+      completeOnboarding();
     }
   };
 
-  // Renderizza la singola slide
-  const renderItem = ({ item }: { item: typeof SLIDES[0] }) => (
-    <View style={styles.slide}>
-      <View style={styles.iconContainer}>
-        {/* Usa i colori diretti di AppTheme se il hook da problemi, o theme.colors se il cast funziona */}
-        <View style={[styles.circle, { backgroundColor: theme.colors.bgPatient || '#F8FCFF' }]}>
-          <MaterialCommunityIcons 
-            name={item.icon} 
-            size={80} 
-            color={theme.colors.primary} 
-          />
-        </View>
-      </View>
-      
-      <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>{item.title}</Text>
-        <Text style={[styles.description, { color: theme.colors.textTertiary }]}>{item.description}</Text>
-      </View>
-    </View>
+  const completeOnboarding = async () => {
+    // Qui potresti salvare in SecureStore che l'onboarding è stato visto
+    navigation.replace('Login');
+  };
+
+  const SkipButton = () => (
+    <Button 
+      mode="text" 
+      textColor={AppTheme.custom.textSecondary}
+      onPress={completeOnboarding}
+      labelStyle={{ fontFamily: 'Articulat-Bold' }}
+    >
+      SALTA
+    </Button>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.bgApp }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.bgApp} />
-      
-      <FlatList
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <SkipButton />
+      </View>
+
+      <Animated.FlatList
         ref={flatListRef}
         data={SLIDES}
-        renderItem={renderItem}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={false}
         keyExtractor={(item) => item.id}
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentIndex(index);
-        }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
+        onViewableItemsChanged={useRef(({ viewableItems }: any) => {
+          if (viewableItems[0]) setCurrentIndex(viewableItems[0].index);
+        }).current}
+        renderItem={({ item }) => (
+          <View style={styles.slide}>
+            <View style={styles.contentContainer}>
+                {/* Placeholder per Immagine/Icona - Sostituisci con Image vera se hai gli asset */}
+                <View style={styles.iconContainer}>
+                    <Text style={{fontSize: 80}}>🏥</Text> 
+                </View>
+                
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+            </View>
+          </View>
+        )}
       />
 
       <View style={styles.footer}>
-        {/* Paginazione */}
+        {/* Paginator Dots */}
         <View style={styles.pagination}>
-          {SLIDES.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                { backgroundColor: index === currentIndex ? theme.colors.primary : theme.colors.border },
-                index === currentIndex ? styles.activeDot : styles.inactiveDot,
-              ]}
-            />
-          ))}
+          {SLIDES.map((_, index) => {
+            const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+            const dotWidth = scrollX.interpolate({
+              inputRange,
+              outputRange: [10, 24, 10],
+              extrapolate: 'clamp',
+            });
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.3, 1, 0.3],
+              extrapolate: 'clamp',
+            });
+            return (
+              <Animated.View 
+                key={index.toString()} 
+                style={[styles.dot, { width: dotWidth, opacity, backgroundColor: AppTheme.colors.primary }]} 
+              />
+            );
+          })}
         </View>
 
-        {/* Bottoni Azione */}
-        <View style={styles.buttonContainer}>
-          {currentIndex < SLIDES.length - 1 ? (
-            <>
-              <Button 
-                mode="text" 
-                onPress={handleFinish}
-                labelStyle={{ color: theme.colors.textTertiary, fontWeight: '600' }}
-              >
-                SALTA
-              </Button>
-              <Button 
-                mode="contained" 
-                onPress={handleNext}
-                style={[styles.nextButton, { backgroundColor: theme.colors.primary }]}
-                contentStyle={{ height: 56 }}
-                labelStyle={{ fontSize: 16, fontWeight: '700' }}
-              >
-                AVANTI
-              </Button>
-            </>
-          ) : (
-            <Button 
-              mode="contained" 
-              onPress={handleFinish}
-              style={[styles.nextButton, { width: '100%', backgroundColor: theme.colors.primary }]}
-              contentStyle={{ height: 56 }}
-              labelStyle={{ fontSize: 16, fontWeight: '700' }}
-            >
-              INIZIA
-            </Button>
-          )}
-        </View>
+        <Button
+          mode="contained"
+          onPress={handleNext}
+          style={styles.nextBtn}
+          contentStyle={{ height: 56 }}
+          labelStyle={styles.btnLabel}
+        >
+          {currentIndex === SLIDES.length - 1 ? 'INIZIA ORA' : 'AVANTI'}
+        </Button>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: 'white' },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'flex-end', 
+    paddingHorizontal: 20, 
+    paddingTop: 10 
   },
-  slide: {
-    width,
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: height * 0.15,
-  },
+  slide: { width, alignItems: 'center', paddingHorizontal: 32 },
+  contentContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: -40 },
   iconContainer: {
-    marginBottom: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#378DD2', // Colore fisso per evitare crash se il tema fallisce
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  textContainer: {
-    alignItems: 'center',
+    width: 120, height: 120, 
+    backgroundColor: '#F0F7FC', 
+    borderRadius: 60, 
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 40
   },
   title: {
+    fontFamily: 'Articulat-Heavy',
     fontSize: 32,
-    fontWeight: '800',
+    color: AppTheme.colors.primary,
     textAlign: 'center',
     marginBottom: 16,
-    letterSpacing: -0.5,
+    lineHeight: 38
   },
   description: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontFamily: 'Articulat-Medium',
+    fontSize: 18,
+    color: AppTheme.custom.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: '90%',
+    lineHeight: 26,
+    maxWidth: '90%'
   },
-  footer: {
-    padding: 32,
-    paddingBottom: 48,
-    justifyContent: 'flex-end',
+  footer: { padding: 32 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', marginBottom: 32, gap: 8 },
+  dot: { height: 10, borderRadius: 5 },
+  nextBtn: { 
+    borderRadius: 16, 
+    backgroundColor: AppTheme.colors.primary,
+    shadowColor: AppTheme.colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6
   },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 32,
-    gap: 8,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
-  },
-  activeDot: {
-    width: 32,
-  },
-  inactiveDot: {
-    width: 8,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 56,
-  },
-  nextButton: {
-    borderRadius: 16,
-    elevation: 4,
-  },
+  btnLabel: { fontFamily: 'Articulat-Bold', fontSize: 16, letterSpacing: 0.5 }
 });

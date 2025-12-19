@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
+import { useNavigation } from '@react-navigation/native'; // <--- 1. Importiamo l'hook di navigazione
 import api from '../services/api';
 import { AppTheme } from '../theme';
-// 1. IMPORTA LA FUNZIONE
-import { registerForPushNotificationsAsync } from '../services/pushNotifications';
 
-type Props = { onLoginSuccess: () => void; };
-
-export default function LoginScreen({ onLoginSuccess }: Props) {
+// Non servono più le Props vecchie
+export default function LoginScreen() {
+  const navigation = useNavigation<any>(); // <--- 2. Otteniamo l'oggetto navigation
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,19 +19,18 @@ export default function LoginScreen({ onLoginSuccess }: Props) {
     setLoading(true);
     
     try {
-      // 2. RECUPERA IL TOKEN PRIMA DEL LOGIN
       let pushToken = null;
       try {
-        const pushToken = null;
+        // Qui dovresti usare registerForPushNotificationsAsync() se l'hai importato
+        // pushToken = await registerForPushNotificationsAsync(); 
       } catch (e) {
-        console.log("Impossibile ottenere token push (sei sul simulatore?)");
+        console.log("No push token");
       }
 
-      // 3. INVIA IL TOKEN AL BACKEND
       const response = await api.post('/auth/login', { 
         username, 
         password,
-        pushToken // <-- Campo aggiunto
+        pushToken
       });
       
       const userToSave = response.data.user;
@@ -40,9 +38,18 @@ export default function LoginScreen({ onLoginSuccess }: Props) {
       await SecureStore.setItemAsync('user_token', response.data.token);
       await SecureStore.setItemAsync('user_info', JSON.stringify(userToSave));
       
-      onLoginSuccess();
+      // 3. NAVIGAZIONE CORRETTA
+      // Invece di onLoginSuccess(), diciamo al navigatore di resettare la storia e andare su Main
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
+
     } catch (error: any) {
-      Alert.alert('Accesso Negato', error.response?.data?.message || 'Credenziali non valide.');
+      console.log("Login Error:", error); // Debug nel terminale
+      // Se è un errore di rete o server, mostriamo quello, altrimenti messaggio generico
+      const msg = error.response?.data?.message || 'Errore durante il login (controlla i log)';
+      Alert.alert('Accesso Negato', msg);
     } finally {
       setLoading(false);
     }
