@@ -6,6 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { AppTheme } from '../theme';
 import { RootStackParamList } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,19 +14,19 @@ const SLIDES = [
   {
     id: '1',
     title: 'Benvenuto in\nPharmaCare',
-    description: 'La piattaforma dedicata ai professionisti sanitari per gestire i turni con precisione chirurgica.',
+    description: 'La piattaforma dedicata ai professionisti sanitari per gestire le richeiste con precisione chirurgica.',
     icon: 'hospital-building', // Usa icone MaterialCommunityIcons se vuoi, qui uso testo per semplicità o immagini placeholder
   },
   {
     id: '2',
-    title: 'Gestione Turni\nSemplificata',
+    title: 'Gestione Richieste\nSemplificata',
     description: 'Ricevi notifiche in tempo reale per nuove richieste. Accetta o rifiuta con un tocco.',
     icon: 'calendar-clock',
   },
   {
     id: '3',
-    title: 'Dettagli Paziente\nSempre Disponibili',
-    description: 'Visualizza cartella clinica, indirizzo e necessità specifiche prima di accettare l\'incarico.',
+    title: 'Dettagli \nSempre Disponibili',
+    description: 'Visualizza i dettagli, l\'indirizzo e le necessità specifiche prima di accettare l\'incarico.',
     icon: 'account-details',
   },
 ];
@@ -47,8 +48,13 @@ export default function OnboardingScreen() {
   };
 
   const completeOnboarding = async () => {
-    // Qui potresti salvare in SecureStore che l'onboarding è stato visto
-    navigation.replace('Login');
+    try {
+      await SecureStore.setItemAsync('has_seen_onboarding', 'true');
+      navigation.replace('Login');
+    } catch (e) {
+      console.log('Errore salvataggio onboarding:', e);
+      navigation.replace('Login');
+    }
   };
 
   const SkipButton = () => (

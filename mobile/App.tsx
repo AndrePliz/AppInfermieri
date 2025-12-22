@@ -1,12 +1,13 @@
+// 1. Unico import necessario all'inizio
 import 'react-native-gesture-handler'; 
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Alert } from 'react-native';
+import { View } from 'react-native';
 import { Provider as PaperProvider, BottomNavigation } from 'react-native-paper';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import { useFonts } from 'expo-font';
-import 'react-native-gesture-handler'; // <--- IMPORTANTE PER LO STACK NAVIGATOR
 
 // --- NAVIGAZIONE ---
 import { NavigationContainer } from '@react-navigation/native';
@@ -23,7 +24,7 @@ import { AppTheme } from './src/theme';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-// --- COMPONENTE TABS (Home + Profilo) ---
+// --- COMPONENTE TABS ---
 function MainTabs({ navigation }: any) {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
@@ -72,26 +73,36 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     'Articulat-Regular': require('./assets/fonts/Articulate-Regular.otf'),
     'Articulat-Bold': require('./assets/fonts/Articulate-Bold.otf'),
-    // ... altri font se necessari ...
+    // 2. AGGIUNTO QUESTO: Fondamentale perché il tuo theme.ts lo usa
+    'Articulat-Medium': require('./assets/fonts/Articulate-Medium.otf'),
   });
 
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
-    const checkLogin = async () => {
+    const checkState = async () => {
       try {
-        const token = await SecureStore.getItemAsync('user_token');
-        // Se ho il token vado a Main, altrimenti mostro Onboarding prima del Login
-        setInitialRoute(token ? 'Main' : 'Onboarding'); 
+        const [token, hasSeenOnboarding] = await Promise.all([
+          SecureStore.getItemAsync('user_token'),
+          SecureStore.getItemAsync('has_seen_onboarding')
+        ]);
+
+        if (token) {
+          setInitialRoute('Main');
+        } else if (hasSeenOnboarding === 'true') {
+          setInitialRoute('Login');
+        } else {
+          setInitialRoute('Onboarding');
+        }
       } catch (e) {
-        setInitialRoute('Onboarding');
+        setInitialRoute('Login');
       }
     };
-    checkLogin();
+    
+    checkState();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    // Gestione splash screen manuale se serve
   }, [fontsLoaded]);
 
   if (!fontsLoaded || !initialRoute) return null;

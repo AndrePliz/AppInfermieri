@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, ActivityIndicator, IconButton, Button } from 'react-native-paper';
+import { Text, ActivityIndicator, Button } from 'react-native-paper'; // Rimosso IconButton
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import PrestazioneCard from '../components/PrestazioneCard';
@@ -30,8 +30,8 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
     try {
       if (!refreshing) setLoading(true);
       const response = await api.get<ShiftsResponse>('/shifts');
-      setAvailableList(response.data.available);
-      setMyList(response.data.myShifts);
+      setAvailableList(response.data.available || []);
+      setMyList(response.data.myShifts || []);
     } catch (error) {
       console.error(error);
     } finally {
@@ -50,17 +50,17 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
     });
   }, []);
 
-// --- LOGICA EVIDENZIAZIONE NOTIFICA ---
-useEffect(() => {
-if (highlightId) {
-    if (viewMode !== 'new') {
-    setViewMode('new');
-    fetchShifts();
-    } else {
-    fetchShifts(); 
+  // --- LOGICA EVIDENZIAZIONE NOTIFICA ---
+  useEffect(() => {
+    if (highlightId) {
+      if (viewMode !== 'new') {
+        setViewMode('new');
+        fetchShifts();
+      } else {
+        fetchShifts(); 
+      }
     }
-}
-}, [highlightId]); // Esegui solo quando cambia l'ID notifica
+  }, [highlightId]);
   // --------------------------------------
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchShifts(); }, []);
@@ -130,7 +130,6 @@ if (highlightId) {
           <Text style={styles.greeting}>Ciao,</Text>
           <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{userName}</Text>
         </View>
-        <IconButton icon="bell-outline" size={28} iconColor={AppTheme.custom.textMain} style={styles.bell} />
       </View>
 
       <View style={styles.tabContainer}>
@@ -188,21 +187,20 @@ if (highlightId) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppTheme.colors.background },
+  container: { flex: 1, backgroundColor: AppTheme.colors.background},
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
   header: { 
-    paddingHorizontal: 28, paddingTop: 36, paddingBottom: 20, 
+    paddingHorizontal: 20, paddingTop: 48, paddingBottom: 20, 
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' 
   },
-  greeting: { fontFamily: 'Articulat-Medium', fontSize: 16, color: AppTheme.custom.textSecondary },
-  title: { fontFamily: 'Articulat-Bold', fontSize: 24, color: AppTheme.custom.textMain, letterSpacing: -0.5 },
-  bell: { margin: 0, backgroundColor: 'white', width: 44, height: 44 },
-
-  tabContainer: { paddingHorizontal: 28, marginBottom: 16 },
-  list: { paddingHorizontal: 28, paddingBottom: 120 },
+  greeting: { fontFamily: 'Articulat-Medium', fontSize: 16, color: AppTheme.custom.textSecondary, marginBottom: 0 },
+  title: { fontFamily: 'Articulat-Bold', fontSize: 24, color: AppTheme.custom.textMain, letterSpacing: -0.5, marginTop: -5 },
+  
+  tabContainer: { paddingHorizontal: 20, marginBottom: 16 },
+  list: { paddingHorizontal: 20, paddingBottom: 120 },
   empty: { alignItems: 'center', marginTop: 80 },
-  emptyText: { fontFamily: 'Articulat-Medium', color: '#999', fontSize: 16, marginBottom: 12 },
+  emptyText: { fontFamily: 'Articulat-Medium', color: '#999', fontSize: 16, marginBottom: 0 },
 
   cardHighlight: {
     borderColor: AppTheme.colors.primary,
