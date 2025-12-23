@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
-import { useNavigation } from '@react-navigation/native'; // <--- 1. Importiamo l'hook di navigazione
+import { useNavigation } from '@react-navigation/native';
 import api from '../services/api';
 import { AppTheme } from '../theme';
 
-// Non servono più le Props vecchie
 export default function LoginScreen() {
-  const navigation = useNavigation<any>(); // <--- 2. Otteniamo l'oggetto navigation
+  const navigation = useNavigation<any>();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,18 +37,15 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync('user_token', response.data.token);
       await SecureStore.setItemAsync('user_info', JSON.stringify(userToSave));
       
-      // 3. NAVIGAZIONE CORRETTA
-      // Invece di onLoginSuccess(), diciamo al navigatore di resettare la storia e andare su Main
       navigation.reset({
         index: 0,
         routes: [{ name: 'Main' }],
       });
 
     } catch (error: any) {
-      console.log("Login Error:", error); // Debug nel terminale
-      // Se è un errore di rete o server, mostriamo quello, altrimenti messaggio generico
-      const msg = error.response?.data?.message || 'Errore durante il login (controlla i log)';
-      Alert.alert('Accesso Negato', msg);
+      // Grazie all'interceptor, la logica di parsing dell'errore è centralizzata.
+      // Qui riceviamo direttamente un messaggio di errore chiaro e pronto per l'utente.
+      Alert.alert('Accesso Negato', error.message);
     } finally {
       setLoading(false);
     }

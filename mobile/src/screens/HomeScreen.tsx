@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, ActivityIndicator, Button } from 'react-native-paper'; // Rimosso IconButton
+import { Text, Button } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import PrestazioneCard from '../components/PrestazioneCard';
 import CustomTabs from '../components/CustomTabs';
 import RefuseDialog from '../components/RefuseDialog';
-import CustomAlert from '../components/CustomAlert'; 
+import CustomAlert from '../components/CustomAlert';
+import FullScreenLoader from '../components/FullScreenLoader'; // <-- 1. Import
 import { ShiftsResponse, ServiceRequest } from '../types';
 import { AppTheme } from '../theme';
 
@@ -28,12 +29,13 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
 
   const fetchShifts = async () => {
     try {
+      // Mostra il loader a schermo intero solo al primo caricamento, non durante il refresh
       if (!refreshing) setLoading(true);
       const response = await api.get<ShiftsResponse>('/shifts');
       setAvailableList(response.data.available || []);
       setMyList(response.data.myShifts || []);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      setAlert({ visible: true, type: 'error', title: 'Errore di Rete', message: error.message });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -50,18 +52,16 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
     });
   }, []);
 
-  // --- LOGICA EVIDENZIAZIONE NOTIFICA ---
   useEffect(() => {
     if (highlightId) {
       if (viewMode !== 'new') {
         setViewMode('new');
-        fetchShifts();
-      } else {
-        fetchShifts(); 
       }
+      // Il fetch viene già richiamato dal cambio di viewMode o al primo load
+      // Per semplicità, possiamo far ricaricare i dati quando arriva un highlight
+      fetchShifts(); 
     }
   }, [highlightId]);
-  // --------------------------------------
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchShifts(); }, []);
 
@@ -75,7 +75,7 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
       primaryColor: AppTheme.custom.success,
       onConfirm: async () => {
         try { await api.post(`/shifts/${id}/lock`); fetchShifts(); } 
-        catch (e: any) { setAlert({ visible: true, type: 'error', title: 'Errore', message: e.response?.data?.message || 'Errore' }); }
+        catch (e: any) { setAlert({ visible: true, type: 'error', title: 'Errore', message: e.message }); }
       }
     });
   };
@@ -93,7 +93,7 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
           await api.post(`/shifts/${id}/accept`);
           setAlert({ visible: true, type: 'success', title: 'Fatto!', message: 'Prestazione spostata in "Da Eseguire".' });
           fetchShifts(); setViewMode('mine'); 
-        } catch { setAlert({ visible: true, type: 'error', title: 'Errore', message: 'Impossibile accettare' }); }
+        } catch (e: any) { setAlert({ visible: true, type: 'error', title: 'Errore', message: e.message }); }
       }
     });
   };
@@ -104,7 +104,7 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
     setRefuseDialogVisible(false);
     if (!selectedRequestId) return;
     try { await api.post(`/shifts/${selectedRequestId}/refuse`, data); fetchShifts(); } 
-    catch (e) { setAlert({ visible: true, type: 'error', title: 'Errore', message: 'Impossibile rifiutare' }); }
+    catch (e: any) { setAlert({ visible: true, type: 'error', title: 'Errore', message: e.message }); }
   };
 
   const handleComplete = (id: number) => {
@@ -112,13 +112,15 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
       visible: true, type: 'info', title: 'Conferma', message: 'Hai completato il turno?', primaryLabel: 'Sì, Completa',
       onConfirm: async () => {
         try { await api.post(`/shifts/${id}/complete`); fetchShifts(); setAlert({ visible: true, type: 'success', title: 'Fatto!', message: 'Prestazione archiviata.' }); } 
-        catch { setAlert({ visible: true, type: 'error', title: 'Errore', message: 'Errore completamento' }); }
+        catch (e: any) { setAlert({ visible: true, type: 'error', title: 'Errore', message: e.message }); }
       }
     });
   };
 
-  if (loading && availableList.length === 0 && myList.length === 0) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={AppTheme.colors.primary} /></View>;
+  // --- 2. Usa il componente FullScreenLoader ---
+  // Mostra il loader solo durante il caricamento iniziale (quando non ci sono ancora dati)
+  if (loading && !refreshing) {
+    return <FullScreenLoader />;
   }
 
   const dataToShow = viewMode === 'new' ? availableList : myList;
@@ -149,10 +151,12 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={AppTheme.colors.primary} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>Nessuna prestazione disponibile.</Text>
-            <Button mode="text" onPress={() => fetchShifts()} textColor={AppTheme.colors.primary}>Aggiorna</Button>
-          </View>
+          !loading ? ( // Non mostrare l'empty state mentre si sta ricaricando
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>Nessuna prestazione disponibile.</Text>
+              <Button mode="text" onPress={onRefresh} textColor={AppTheme.colors.primary}>Aggiorna</Button>
+            </View>
+          ) : null
         }
         renderItem={({ item }) => {
           const isHighlighted = String(item.service_request_id) === String(highlightId);
@@ -188,7 +192,6 @@ export default function HomeScreen({ highlightId }: HomeScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppTheme.colors.background},
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
   header: { 
     paddingHorizontal: 20, paddingTop: 48, paddingBottom: 20, 
