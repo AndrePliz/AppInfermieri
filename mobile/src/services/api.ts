@@ -1,12 +1,9 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-
-// SOSTITUISCI CON IL TUO IP REALE TROVATO SOPRA
-// Esempio: 'http://192.168.1.13:3000/api'
-const API_URL = 'http://192.168.1.44:3000/api'; 
+import { config } from '../config';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: config.API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
