@@ -92,18 +92,19 @@ export const NotificationLogic = {
     const expoPushUrl = 'https://exp.host/--/api/v2/push/send';
     const fixedTitle = "C'è una nuova richiesta nella tua zona!"; 
     
-    // 1. Filtro doppi invii Push 
+    if (!process.env.EXPO_ACCESS_TOKEN) {
+      console.warn('[PUSH WARN] EXPO_ACCESS_TOKEN non è configurato. Le notifiche potrebbero non funzionare su build di sviluppo.');
+    }
+
     const alreadySentPush = await Notification.findAll({ where: { request_id: requestId }, attributes: ['user'] });
     const sentPushUsers = new Set(alreadySentPush.map((n: any) => n.user));
 
-    // 2. Filtro doppi inserimenti DB 
     const alreadyAssigned = await UserRequestStatus.findAll({ where: { request: requestId }, attributes: ['user'] });
     const assignedUsers = new Set(alreadyAssigned.map((u: any) => u.user));
 
     const pushTargets = targets.filter(t => t.device && t.device.startsWith('ExponentPushToken') && !sentPushUsers.has(t.username));
     const dbTargets = targets.filter(t => !assignedUsers.has(t.username));
 
-    // --- A. INVIO PUSH ---
     if (pushTargets.length > 0) {
         const messages = pushTargets.map(t => ({
           to: t.device,
@@ -114,7 +115,14 @@ export const NotificationLogic = {
         }));
 
         try {
-          await axios.post(expoPushUrl, messages, { headers: { 'Accept': 'application/json', 'Accept-encoding': 'gzip, deflate', 'Content-Type': 'application/json' } });
+          const headers = { 
+            'Accept': 'application/json', 
+            'Accept-encoding': 'gzip, deflate', 
+            'Content-Type': 'application/json',
+            ...(process.env.EXPO_ACCESS_TOKEN && { 'Authorization': `Bearer ${process.env.EXPO_ACCESS_TOKEN}` })
+          };
+
+          await axios.post(expoPushUrl, messages, { headers });
           
           const notificationsToInsert = pushTargets.map(t => ({
             user: t.username,
@@ -130,11 +138,14 @@ export const NotificationLogic = {
           await Notification.bulkCreate(notificationsToInsert);
           console.log(`[PUSH] Inviate ${pushTargets.length} notifiche`);
         } catch (error) {
-          console.error('[PUSH ERROR]', error);
+          if (axios.isAxiosError(error) && error.response) {
+            console.error('[PUSH ERROR] Errore da Expo:', JSON.stringify(error.response.data, null, 2));
+          } else {
+            console.error('[PUSH ERROR]', error);
+          }
         }
     }
 
-    // --- B. INSERIMENTO DB ---
     if (dbTargets.length > 0) {
         try {
             const rowsToInsert = dbTargets.map(t => ({

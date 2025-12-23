@@ -3,8 +3,53 @@ import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableWitho
 import { TextInput, Button, Text } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import api from '../services/api';
 import { AppTheme } from '../theme';
+import CustomAlert from '../components/CustomAlert';
+
+// Funzione helper per gestire il processo di ottenimento del token
+async function registerForPushNotificationsAsync(): Promise<string | null> {
+  let token;
+
+  if (!Device.isDevice) {
+    console.log('Le notifiche push richiedono un dispositivo fisico, non un simulatore.');
+    return null;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    // L'utente non ha concesso i permessi. Non è un errore, ma una scelta.
+    // Puoi decidere di mostrare un alert qui, ma per ora lo lasciamo silenzioso.
+    console.log('Permesso per le notifiche non concesso.');
+    return null;
+  }
+  
+  // Ottieni il token
+  token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('Expo Push Token:', token);
+
+  // Configurazioni specifiche per Android
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  return token;
+}
+
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -12,24 +57,23 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [alert, setAlert] = useState<{ visible: boolean; type: 'error'|'info'; title: string; message: string; }>({ visible: false, type: 'info', title: '', message: '' });
 
   const handleLogin = async () => {
-    if (!username || !password) return Alert.alert('Attenzione', 'Inserisci email e password');
+    if (!username || !password) {
+      setAlert({ visible: true, type: 'info', title: 'Attenzione', message: 'Inserisci email e password' });
+      return;
+    }
     setLoading(true);
     
     try {
-      let pushToken = null;
-      try {
-        // Qui dovresti usare registerForPushNotificationsAsync() se l'hai importato
-        // pushToken = await registerForPushNotificationsAsync(); 
-      } catch (e) {
-        console.log("No push token");
-      }
+      // Chiedi i permessi e ottieni il token prima del login
+      const pushToken = await registerForPushNotificationsAsync();
 
       const response = await api.post('/auth/login', { 
         username, 
         password,
-        pushToken
+        pushToken // Invia il token (o null se i permessi sono negati)
       });
       
       const userToSave = response.data.user;
@@ -43,9 +87,7 @@ export default function LoginScreen() {
       });
 
     } catch (error: any) {
-      // Grazie all'interceptor, la logica di parsing dell'errore è centralizzata.
-      // Qui riceviamo direttamente un messaggio di errore chiaro e pronto per l'utente.
-      Alert.alert('Accesso Negato', error.message);
+      setAlert({ visible: true, type: 'error', title: 'Accesso Negato', message: error.message });
     } finally {
       setLoading(false);
     }
@@ -64,7 +106,7 @@ export default function LoginScreen() {
           <View style={styles.form}>
             <TextInput
               mode="outlined"
-              label="Email aziendale"
+              label="La tua email"
               value={username}
               onChangeText={setUsername}
               style={styles.input}
@@ -114,6 +156,15 @@ export default function LoginScreen() {
           </View>
 
         </KeyboardAvoidingView>
+        
+        <CustomAlert 
+          visible={alert.visible}
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onDismiss={() => setAlert({ ...alert, visible: false })}
+          secondaryAction={{ label: 'Chiudi', onPress: () => setAlert({ ...alert, visible: false })}}
+        />
       </View>
     </TouchableWithoutFeedback>
   );
